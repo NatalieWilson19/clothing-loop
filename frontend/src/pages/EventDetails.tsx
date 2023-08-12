@@ -26,6 +26,7 @@ import dayjs from "../util/dayjs";
 import useToClipboard from "../util/to-clipboard.hooks";
 import { AuthContext } from "../providers/AuthProvider";
 import { uploadImage } from "../api/imgbb";
+import { userGetByUID } from "../api/user";
 
 // Media
 const ClothesImage =
@@ -41,6 +42,7 @@ export default function EventDetails() {
   const history = useHistory();
   const addCopyAttributes = useToClipboard();
   const [imageExpanded, setImageExpanded] = useState(false);
+  const [screenshotView, setScreenshotView] = useState(false);
 
   useEffect(() => {
     load();
@@ -150,6 +152,14 @@ export default function EventDetails() {
     const isOrganizer = authUser
       ? authUser.uid === event.user_uid || authUser.is_root_admin
       : false;
+    const isSuperAdmin = authUser?.is_root_admin;
+    console.log(isSuperAdmin);
+    /*
+    const isSuperAdmin = authUser
+      ? authUser.uid === nichons.uid
+      : false;
+    */
+
     let image = ClothesImage;
     if (event.image_url) image = event.image_url;
 
@@ -183,6 +193,15 @@ export default function EventDetails() {
                 </a>
                 {isOrganizer ? (
                   <>
+                    {isSuperAdmin ? (
+                      <button
+                        className="btn btn-primary mr-4 rtl:mr-0 rtl:ml-4"
+                        onClick={() => setScreenshotView(true)}
+                      >
+                        <span className="feather feather-camera" />
+                      </button>
+                    ) : null}
+
                     <Link
                       to={`/events/` + event.uid + `/edit`}
                       className="btn btn-secondary btn-outline mr-4 rtl:mr-0 rtl:ml-4"
@@ -202,224 +221,235 @@ export default function EventDetails() {
               </div>
             </div>
           </div>
-          <div className="max-w-screen-xl mx-auto pt-6 px-6 md:px-20">
-            <div className="flex flex-col md:flex-row-reverse">
-              <div className="w-full md:w-3/5 md:-mt-20 mb-4 md:mb-0 ml-0 md:ml-12 lg:ml-20 rtl:ml-0 rtl:md:mr-12 rtl:lg:mr-20">
-                <div className="relative">
-                  <dl className="z-10 relative bg-white md:shadow-[2px_3px_3px_1px_rgba(66,66,66,0.2)] md:py-10 md:px-8">
-                    {date ? (
-                      <>
-                        <dt className="mb-2 font-bold font-sans text-xl text-teal">
-                          {t("time") + ":"}
-                        </dt>
-                        <dd className="mb-1 ltr:ml-4 rtl:mr-4">
-                          <span
-                            className="ltr:mr-2 rtl:ml-2 inline-block feather feather-clock"
-                            aria-hidden
-                          ></span>
-                          {dateEnd ? (
-                            sameDate ? (
-                              <Fragment>
-                                <span className="font-sans text-lg">
-                                  {date?.format("LL")}
-                                </span>
-                                <br />
-                                <span className="font-sans text-lg ltr:ml-6 rtl:mr-6">
-                                  {date?.format("LT")}
-                                </span>
-                                <span
-                                  className="inline-block feather feather-arrow-right mx-2 rtl:hidden"
-                                  aria-hidden
-                                ></span>{" "}
-                                <span
-                                  className="inline-block feather feather-arrow-left mx-2 ltr:hidden"
-                                  aria-hidden
-                                ></span>
-                                <span className="font-sans text-lg">
-                                  {dateEnd.format("LT")}
-                                </span>
-                              </Fragment>
+          {screenshotView ? (
+            <div className="max-w-screen-xl mx-auto pt-6 px-6 md:px-20">
+              <img
+                src={image}
+                alt=""
+                className="object-cover h-full w-1/2"
+                onClick={() => setImageExpanded(true)}
+              />
+            </div>
+          ) : (
+            <div className="max-w-screen-xl mx-auto pt-6 px-6 md:px-20">
+              <div className="flex flex-col md:flex-row-reverse">
+                <div className="w-full md:w-3/5 md:-mt-20 mb-4 md:mb-0 ml-0 md:ml-12 lg:ml-20 rtl:ml-0 rtl:md:mr-12 rtl:lg:mr-20">
+                  <div className="relative">
+                    <dl className="z-10 relative bg-white md:shadow-[2px_3px_3px_1px_rgba(66,66,66,0.2)] md:py-10 md:px-8">
+                      {date ? (
+                        <>
+                          <dt className="mb-2 font-bold font-sans text-xl text-teal">
+                            {t("time") + ":"}
+                          </dt>
+                          <dd className="mb-1 ltr:ml-4 rtl:mr-4">
+                            <span
+                              className="ltr:mr-2 rtl:ml-2 inline-block feather feather-clock"
+                              aria-hidden
+                            ></span>
+                            {dateEnd ? (
+                              sameDate ? (
+                                <Fragment>
+                                  <span className="font-sans text-lg">
+                                    {date?.format("LL")}
+                                  </span>
+                                  <br />
+                                  <span className="font-sans text-lg ltr:ml-6 rtl:mr-6">
+                                    {date?.format("LT")}
+                                  </span>
+                                  <span
+                                    className="inline-block feather feather-arrow-right mx-2 rtl:hidden"
+                                    aria-hidden
+                                  ></span>{" "}
+                                  <span
+                                    className="inline-block feather feather-arrow-left mx-2 ltr:hidden"
+                                    aria-hidden
+                                  ></span>
+                                  <span className="font-sans text-lg">
+                                    {dateEnd.format("LT")}
+                                  </span>
+                                </Fragment>
+                              ) : (
+                                <Fragment>
+                                  <span className="font-sans text-lg">
+                                    {date?.format("LLL")}
+                                  </span>
+                                  <br />
+                                  <span
+                                    className="block feather feather-arrow-down"
+                                    aria-hidden
+                                  ></span>
+                                  <span
+                                    className="ltr:mr-2 rtl:ml-2 inline-block feather feather-clock rotate-90"
+                                    aria-hidden
+                                  ></span>
+                                  <span className="font-sans text-lg">
+                                    {dateEnd.format("LLL")}
+                                  </span>
+                                </Fragment>
+                              )
                             ) : (
-                              <Fragment>
-                                <span className="font-sans text-lg">
-                                  {date?.format("LLL")}
-                                </span>
-                                <br />
-                                <span
-                                  className="block feather feather-arrow-down"
-                                  aria-hidden
-                                ></span>
-                                <span
-                                  className="ltr:mr-2 rtl:ml-2 inline-block feather feather-clock rotate-90"
-                                  aria-hidden
-                                ></span>
-                                <span className="font-sans text-lg">
-                                  {dateEnd.format("LLL")}
-                                </span>
-                              </Fragment>
-                            )
-                          ) : (
-                            <span className="font-sans text-lg">
-                              {date?.format("LLL")}
-                            </span>
-                          )}
-                        </dd>
-                      </>
-                    ) : null}
-                    <dt className="mb-2 font-bold font-sans text-xl text-teal">
-                      {t("price") + ":"}
-                    </dt>
-                    <dd className="mb-1 ltr:ml-4 rtl:mr-4">
-                      <span className="ltr:mr-2 rtl:ml-2 inline-block feather feather-tag"></span>
-                      {event.price_currency ? (
-                        <span className="font-sans text-lg" key="price">
-                          {event.price_currency + " " + eventPriceValue}
-                        </span>
-                      ) : (
-                        <span className="font-sans text-lg" key="free">
-                          {t("priceFree")}
-                        </span>
-                      )}
-                    </dd>
-                    {event.address ? (
-                      <Fragment key="address">
-                        <dt className="mb-2 font-bold font-sans text-xl text-teal">
-                          {t("location") + ":"}
-                        </dt>
-                        <dd className="mb-1 ltr:ml-4 rtl:mr-4">
-                          <span
-                            className="ltr:mr-2 rtl:ml-2 feather feather-map-pin"
-                            aria-hidden
-                          ></span>
-                          <address
-                            {...addCopyAttributes(
-                              t,
-                              "event-detail-address-" + event.uid,
-                              "text-lg inline"
+                              <span className="font-sans text-lg">
+                                {date?.format("LLL")}
+                              </span>
                             )}
+                          </dd>
+                        </>
+                      ) : null}
+                      <dt className="mb-2 font-bold font-sans text-xl text-teal">
+                        {t("price") + ":"}
+                      </dt>
+                      <dd className="mb-1 ltr:ml-4 rtl:mr-4">
+                        <span className="ltr:mr-2 rtl:ml-2 inline-block feather feather-tag"></span>
+                        {event.price_currency ? (
+                          <span className="font-sans text-lg" key="price">
+                            {event.price_currency + " " + eventPriceValue}
+                          </span>
+                        ) : (
+                          <span className="font-sans text-lg" key="free">
+                            {t("priceFree")}
+                          </span>
+                        )}
+                      </dd>
+                      {event.address ? (
+                        <Fragment key="address">
+                          <dt className="mb-2 font-bold font-sans text-xl text-teal">
+                            {t("location") + ":"}
+                          </dt>
+                          <dd className="mb-1 ltr:ml-4 rtl:mr-4">
+                            <span
+                              className="ltr:mr-2 rtl:ml-2 feather feather-map-pin"
+                              aria-hidden
+                            ></span>
+                            <address
+                              {...addCopyAttributes(
+                                t,
+                                "event-detail-address-" + event.uid,
+                                "text-lg inline"
+                              )}
+                            >
+                              {event.address}
+                            </address>
+                          </dd>
+                        </Fragment>
+                      ) : null}
+                      <dt className="mb-2 font-bold font-sans text-xl text-teal">
+                        {t("categories") + ":"}
+                      </dt>
+
+                      <dd className="mb-1 ltr:ml-4 rtl:mr-4 block">
+                        {event.genders?.length ? (
+                          <SizeBadges g={event.genders} />
+                        ) : null}
+                      </dd>
+                      <dt className="mb-2 font-bold font-sans text-xl text-teal">
+                        {t("organizedBy") + ":"}
+                      </dt>
+                      <dd className="mr-2 mb-1 ltr:ml-4 rtl:mr-4">
+                        {event.chain_uid ? (
+                          <Link
+                            to={"/loops/" + event.chain_uid + "/users/signup"}
+                            key="loop"
+                            className="group block mb-1"
                           >
-                            {event.address}
-                          </address>
-                        </dd>
-                      </Fragment>
-                    ) : null}
-                    <dt className="mb-2 font-bold font-sans text-xl text-teal">
-                      {t("categories") + ":"}
-                    </dt>
-
-                    <dd className="mb-1 ltr:ml-4 rtl:mr-4 block">
-                      {event.genders?.length ? (
-                        <SizeBadges g={event.genders} />
-                      ) : null}
-                    </dd>
-                    <dt className="mb-2 font-bold font-sans text-xl text-teal">
-                      {t("organizedBy") + ":"}
-                    </dt>
-                    <dd className="mr-2 mb-1 ltr:ml-4 rtl:mr-4">
-                      {event.chain_uid ? (
-                        <Link
-                          to={"/loops/" + event.chain_uid + "/users/signup"}
-                          key="loop"
-                          className="group block mb-1"
-                        >
-                          <span className="ltr:mr-2 rtl:ml-2 inline-block relative">
+                            <span className="ltr:mr-2 rtl:ml-2 inline-block relative">
+                              <span
+                                className="block feather feather-circle"
+                                aria-hidden
+                              ></span>
+                              <span
+                                className="absolute top-1 left-0 block feather feather-circle"
+                                aria-hidden
+                              ></span>
+                            </span>
+                            <span className="group-hover:underline">
+                              {event.chain_name}
+                            </span>
+                          </Link>
+                        ) : null}
+                        {event.link ? (
+                          <a
+                            href={event.link}
+                            key="link"
+                            className="group block mb-1"
+                            target="_blank"
+                          >
                             <span
-                              className="block feather feather-circle"
+                              className="ltr:mr-2 rtl:ml-2 inline-block feather feather-external-link"
                               aria-hidden
                             ></span>
-                            <span
-                              className="absolute top-1 left-0 block feather feather-circle"
-                              aria-hidden
-                            ></span>
-                          </span>
-                          <span className="group-hover:underline">
-                            {event.chain_name}
-                          </span>
-                        </Link>
-                      ) : null}
-                      {event.link ? (
-                        <a
-                          href={event.link}
-                          key="link"
-                          className="group block mb-1"
-                          target="_blank"
-                        >
-                          <span
-                            className="ltr:mr-2 rtl:ml-2 inline-block feather feather-external-link"
-                            aria-hidden
-                          ></span>
-                          <span className="group-hover:underline">
-                            {t("eventLink")}
-                          </span>
-                        </a>
-                      ) : null}
-                    </dd>
-                    <dd className="mb-1 ltr:ml-4 rtl:mr-4"></dd>
-                  </dl>
+                            <span className="group-hover:underline">
+                              {t("eventLink")}
+                            </span>
+                          </a>
+                        ) : null}
+                      </dd>
+                      <dd className="mb-1 ltr:ml-4 rtl:mr-4"></dd>
+                    </dl>
 
-                  <img
-                    src={CirclesFrame}
-                    aria-hidden
-                    className="absolute -bottom-10  ltr:-right-10 rtl:-left-10 hidden md:block"
-                  />
+                    <img
+                      src={CirclesFrame}
+                      aria-hidden
+                      className="absolute -bottom-10  ltr:-right-10 rtl:-left-10 hidden md:block"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="w-full">
-                <h2 className="font-sans font-bold text-secondary text-2xl mb-4 px-0">
-                  {t("eventDetails") + ":"}
-                </h2>
-                <div
-                  className={
-                    imageExpanded
-                      ? "flex flex-col-reverse w-full content-center"
-                      : "cursor-zoom-in"
-                  }
-                >
+                <div className="w-full">
+                  <h2 className="font-sans font-bold text-secondary text-2xl mb-4 px-0">
+                    {t("eventDetails") + ":"}
+                  </h2>
                   <div
-                    className={`aspect-[4/3] mb-4 ltr:mr-0 rtl:ml-0 relative transtion-[postion]
+                    className={
+                      imageExpanded
+                        ? "flex flex-col-reverse w-full content-center"
+                        : "cursor-zoom-in"
+                    }
+                  >
+                    <div
+                      className={`aspect-[4/3] mb-4 ltr:mr-0 rtl:ml-0 relative transtion-[postion]
                   ${
                     imageExpanded
                       ? "max-w-xl mt-8"
                       : "sm:w-64 sm:float-right rtl:sm:float-left sm:m-4"
                   }`}
-                  >
-                    {isOrganizer ? (
-                      <div className="absolute top-2 right-2 rtl:right-auto rtl:left-2 flex flex-row-reverse">
-                        <label
-                          key="upload-image"
-                          className="tooltip tooltip-bottom"
-                          data-tip={t("uploadImage")}
-                        >
-                          <input
-                            type="file"
-                            id="event-details-form-img-file"
-                            accept="image/png, image/jpeg"
-                            name="filename"
-                            className="hidden"
-                            onInput={handleUploadImage}
-                          />
-                          <div
-                            className="btn btn-ghost bg-white/90 hover:bg-white btn-sm btn-square feather feather-upload"
-                            aria-label="Upload image"
-                          ></div>
-                        </label>
-                      </div>
-                    ) : null}
-                    <img
-                      src={image}
-                      alt=""
-                      className="object-cover h-full w-full"
-                      onClick={() => setImageExpanded(true)}
-                    />
+                    >
+                      {isOrganizer ? (
+                        <div className="absolute top-2 right-2 rtl:right-auto rtl:left-2 flex flex-row-reverse">
+                          <label
+                            key="upload-image"
+                            className="tooltip tooltip-bottom"
+                            data-tip={t("uploadImage")}
+                          >
+                            <input
+                              type="file"
+                              id="event-details-form-img-file"
+                              accept="image/png, image/jpeg"
+                              name="filename"
+                              className="hidden"
+                              onInput={handleUploadImage}
+                            />
+                            <div
+                              className="btn btn-ghost bg-white/90 hover:bg-white btn-sm btn-square feather feather-upload"
+                              aria-label="Upload image"
+                            ></div>
+                          </label>
+                        </div>
+                      ) : null}
+                      <img
+                        src={image}
+                        alt=""
+                        className="object-cover h-full w-full"
+                        onClick={() => setImageExpanded(true)}
+                      />
+                    </div>
+                    <div
+                      className="prose"
+                      dangerouslySetInnerHTML={{ __html: event.description }}
+                    ></div>
                   </div>
-                  <div
-                    className="prose"
-                    dangerouslySetInnerHTML={{ __html: event.description }}
-                  ></div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </main>
       </>
     );
