@@ -3,11 +3,11 @@ import { IsChainAdmin, MmData, StoreContext } from "../../stores/Store";
 import ChatInput, { SendingMsgState } from "./ChatInput";
 import { Channel } from "@mattermost/types/channels";
 import { IonActionSheet, IonAlert, IonIcon, useIonAlert } from "@ionic/react";
-import { addOutline, build as buildFilled } from "ionicons/icons";
+import { addOutline, build as buildFilled, image } from "ionicons/icons";
 import { useTranslation } from "react-i18next";
 import { IonAlertCustomEvent } from "@ionic/core";
 import type { PostList, Post } from "@mattermost/types/posts";
-import { User } from "../../api/types";
+import { BulkyItem, User } from "../../api/types";
 import ChatPost, { ChatPostProps } from "./ChatPost";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -15,6 +15,7 @@ import { useDebouncedCallback } from "use-debounce";
 import { useLongPress } from "use-long-press";
 import dayjs from "dayjs";
 import { UserProfile } from "@mattermost/types/users";
+import CreateUpdateBulky from "../CreateUpdateBulky";
 
 interface Props {
   channels: Channel[];
@@ -22,6 +23,7 @@ interface Props {
   postList: PostList;
   authUser: User;
   getMmUser: (id: string) => Promise<UserProfile>;
+  onUploadFile: (image: File) => Promise<string| undefined> ;
   getFile: (fileId: string, timestamp: number) => void;
   onCreateChannel: (n: string) => void;
   onSelectChannel: (c: Channel) => void;
@@ -32,7 +34,12 @@ interface Props {
   onSendMessage: (msg: string, callback: Function) => Promise<void>;
   onSendMessageWithImage: (
     msg: string,
-    image: File,
+    fileID: string,
+    callback: Function,
+  ) => Promise<void>;
+  onUpdateMessage: (
+    postID: string,
+    msg: string,
     callback: Function,
   ) => Promise<void>;
 }
@@ -40,7 +47,7 @@ interface Props {
 // This follows the controller / view component pattern
 export default function ChatWindow(props: Props) {
   const { t } = useTranslation();
-  const { authUser, isChainAdmin, chain, chainUsers } =
+  const { authUser, isChainAdmin, chain, chainUsers, bulkyItems } =
     useContext(StoreContext);
   const slowTriggerScrollTop = useDebouncedCallback(() => {
     const lastPostId = props.postList.order.at(-1);
@@ -60,6 +67,15 @@ export default function ChatWindow(props: Props) {
     string | null
   >(null);
   const [presentAlert] = useIonAlert();
+  const editBulkyModal = useRef<HTMLIonModalElement>(null);
+  const { refresh } = useContext(StoreContext);
+  const [updateBulky, setUpdateBulky] = useState<BulkyItem | null>(null);
+  const [bulkyPostId, setBulkyPostID] = useState("");
+
+  const [bulkyTitle, setBulkyTitle] = useState("");
+  const [bulkyMessage, setBulkyMessage] = useState("");
+  const [bulkyFileID, setBulkyFileID] = useState("");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     if (entry?.isIntersecting) {
@@ -98,8 +114,16 @@ export default function ChatWindow(props: Props) {
     });
   }
 
-  function onSendMessageWithImage(topPostId: string, image: File) {
-    return props.onSendMessageWithImage(topPostId, image, () => {
+  function onSendMessageWithImage(topPostId: string, fileID: string) {
+    return props.onSendMessageWithImage(topPostId, fileID, () => {
+      refScrollRoot.current?.scrollTo({
+        top: 0,
+      });
+    });
+  }
+
+  function onUpdateMessage(postId: string, topPostId: string) {
+    return props.onUpdateMessage(postId, topPostId, () => {
       refScrollRoot.current?.scrollTo({
         top: 0,
       });
@@ -117,7 +141,7 @@ export default function ChatWindow(props: Props) {
     },
   );
 
-  function handlePostOptionSelect(value: "delete") {
+  function handlePostOptionSelect(value: "delete" | "edit") {
     if (value == "delete") {
       const postID = isPostActionSheetOpen;
       if (!postID) return;
@@ -134,8 +158,27 @@ export default function ChatWindow(props: Props) {
           },
         ],
       });
+    } else if (value == "edit") {
+      const postID = isPostActionSheetOpen;
+      if (!postID) return;
+      const post = props.postList.posts[postID];
+      const [title, message] = post.message.split("\n\n");
+      const fileID = post.file_ids ? post.file_ids[0] : ""
+      setBulkyPostID(postID);
+      setBulkyTitle(title);
+      setBulkyMessage(message);
+      setBulkyFileID(fileID);
+      setIsEditModalOpen(true);
     }
   }
+  useEffect(() => {
+    if (isEditModalOpen) {
+      console.log(bulkyFileID)
+
+      editBulkyModal.current?.present();
+      setIsEditModalOpen(false);
+    }
+  }, [isEditModalOpen]);
 
   function handleChannelOptionSelect(value: "delete" | "rename") {
     if (value == "delete") {
@@ -297,8 +340,11 @@ export default function ChatWindow(props: Props) {
         <span key="top" ref={refScrollTop}></span>
       </div>
       <ChatInput
+      
         onSendMessage={onSendMessageWithCallback}
+        onUploadImage={props.onUploadFile}
         onSendMessageWithImage={onSendMessageWithImage}
+        onUpdateMessage={onUpdateMessage}
       />
       <IonActionSheet
         isOpen={isPostActionSheetOpen !== null}
@@ -310,11 +356,29 @@ export default function ChatWindow(props: Props) {
             handler: () => handlePostOptionSelect("delete"),
           },
           {
+            text: t("edit"),
+            role: "sumbit",
+            handler: () => handlePostOptionSelect("edit"),
+          },
+          {
             text: t("cancel"),
             role: "cancel",
           },
         ]}
       ></IonActionSheet>
+      <CreateUpdateBulky
+        type="update"
+        modal={editBulkyModal}
+        didDismiss={() => refresh("bulky-items")}
+        bulky={updateBulky}
+        onUploadBulkyImage={props.onUploadFile}
+        onSendBulkyItem={props.onSendMessageWithImage}
+        onUpdateBulkyItem={props.onUpdateMessage}
+        postID={bulkyPostId}
+        title={bulkyTitle}
+        message={bulkyMessage}
+        fileID={bulkyFileID}
+      />
     </div>
   );
 }

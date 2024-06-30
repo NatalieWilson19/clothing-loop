@@ -37,6 +37,9 @@ export default function ChatPost(props: ChatPostProps) {
   const [imageURL, setImageURL] = useState("");
   const refModalDesc = useRef<HTMLIonModalElement>(null);
   //const [user, setUser] = useState(User)
+
+ // console.log(props.post)
+
   const message = useMemo(() => {
     props.getMmUser(props.post.user_id).then((res) => {
       const user = props.users.find((u) => res.username === u.uid);
@@ -49,7 +52,6 @@ export default function ChatPost(props: ChatPostProps) {
     }
     return message;
   }, [props.users, props.post]);
-
   useEffect(() => {
     fetchPostImage()
       .then((im) => {

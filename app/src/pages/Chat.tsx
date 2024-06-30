@@ -315,11 +315,7 @@ export default function Chat() {
     return fileUrl.toString();
   }
 
-  async function onSendMessageWithImage(
-    message: string,
-    image: File,
-    callback: Function,
-  ) {
+  async function onUploadFile(image: File) {
     if (!selectedChannel || !mmClient) return;
     console.log("reqPostList", selectedChannel.id);
 
@@ -329,11 +325,48 @@ export default function Chat() {
 
     try {
       const res = await mmClient.uploadFile(formData);
-      const file_id = res.file_infos[0].id;
+      return res.file_infos[0].id;
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  }
+
+  async function onUpdateMessage(
+    postID: string,
+    message: string,
+    callback: Function,
+  ) {
+    if (!selectedChannel || !mmClient) return;
+    console.log("reqPostList", selectedChannel.id);
+
+    try {
+      await mmClient.patchPost({
+        id: postID,
+        message: message,
+      })
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+
+    if (!selectedChannel || !mmClient) return;
+
+    reqPostList(mmClient, selectedChannel, "").then(() => callback());
+  }
+
+  async function onSendMessageWithImage(
+    message: string,
+    fileID: string,
+    callback: Function,
+  ) {
+    if (!selectedChannel || !mmClient) return;
+    console.log("reqPostList", selectedChannel.id);
+    try {
       await mmClient.createPost({
         channel_id: selectedChannel.id,
         message: message,
-        file_ids: [file_id],
+        file_ids: [fileID],
       } as Partial<Post> as Post);
     } catch (err) {
       console.error(err);
@@ -407,9 +440,11 @@ export default function Chat() {
               onRenameChannel={onRenameChannel}
               onDeleteChannel={onDeleteChannel}
               onDeletePost={onDeletePost}
+              onUploadFile={onUploadFile}
               getFile={getFile}
               onSendMessage={onSendMessage}
               onSendMessageWithImage={onSendMessageWithImage}
+              onUpdateMessage={onUpdateMessage}
               onScrollTop={onScrollTop}
               postList={postList}
               authUser={authUser}

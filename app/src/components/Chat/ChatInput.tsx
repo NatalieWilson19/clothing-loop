@@ -24,7 +24,9 @@ export enum SendingMsgState {
 }
 interface Props {
   onSendMessage: (msg: string) => Promise<void>;
-  onSendMessageWithImage: (msg: string, image: File) => Promise<void>;
+  onUploadImage: (image: File) => Promise<string | undefined> ;
+  onSendMessageWithImage: (msg: string, fileID: string) => Promise<void>;
+  onUpdateMessage: (postID: string, msg: string) => Promise<void>;
 }
 
 // This follows the controller / view component pattern
@@ -114,9 +116,12 @@ export default function ChatInput(props: Props) {
         </form>
       </div>
       <CreateUpdateBulky
+        type="create"
         modal={modal}
         didDismiss={() => refresh("bulky-items")}
         bulky={updateBulky}
+        onUploadBulkyImage={props.onUploadImage}
+        onUpdateBulkyItem={props.onUpdateMessage}
         onSendBulkyItem={props.onSendMessageWithImage}
       />
     </>

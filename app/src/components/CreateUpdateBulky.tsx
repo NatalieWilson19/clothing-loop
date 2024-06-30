@@ -42,26 +42,46 @@ enum State {
 }
 
 export default function CreateUpdateBulky({
+  type,
   bulky,
   didDismiss,
   modal,
+  onUploadBulkyImage,
   onSendBulkyItem,
+  onUpdateBulkyItem,
+  postID,
+  title,
+  message,
+  fileID,
 }: {
+  type: "create" | "update";
   bulky: BulkyItem | null;
   modal: RefObject<HTMLIonModalElement>;
   didDismiss?: (
     e: IonModalCustomEvent<OverlayEventDetail<BulkyItem | null>>,
   ) => void;
+  onUploadBulkyImage :(
+    image: File
+  ) => Promise<string| undefined>;
   onSendBulkyItem: (
     message: string,
-    image: File,
+    fileID: string,
     callback: Function,
   ) => Promise<void>;
+  onUpdateBulkyItem: (
+    postId: string,
+    message: string,
+    callback: Function,
+  ) => Promise<void>;
+  postID?: string;
+  title?: string;
+  message?: string;
+  fileID?: string;
 }) {
   const { t } = useTranslation();
   const { chain, authUser } = useContext(StoreContext);
-  const [bulkyTitle, setBulkyTitle] = useState("");
-  const [bulkyMessage, setBulkyMessage] = useState("");
+  const [bulkyTitle, setBulkyTitle] = useState(title);
+  const [bulkyMessage, setBulkyMessage] = useState(message);
   const [bulkyImageURL, setBulkyImageURL] = useState("");
   const [error, setError] = useState("");
   const [isCapacitor] = useState(() => isPlatform("capacitor"));
@@ -72,9 +92,12 @@ export default function CreateUpdateBulky({
   const [imageFile, setImageFile] = useState<File>();
 
   function modalInit() {
-    setBulkyTitle(bulky?.title || "");
-    setBulkyMessage(bulky?.message || "");
-    setBulkyImageURL(bulky?.image_url || "");
+    console.log(bulkyTitle, bulkyMessage);
+    const url = fileID ? `http://localhost:8065/api/v4/files/${fileID}/preview` : ""
+
+    setBulkyTitle(title || "");
+    setBulkyMessage(message || "");
+    setBulkyImageURL(url);
     setLoadingUpload(State.idle);
   }
 
@@ -98,14 +121,35 @@ export default function CreateUpdateBulky({
       setError("image-url");
       return;
     }
-
-    if (!imageFile) return;
     try {
-      onSendBulkyItem(`${bulkyTitle}\n\n${bulkyMessage}`, imageFile, () => {
-        refScrollRoot.current?.scrollTo({
-          top: 0,
+      if (type == "create") {
+
+        if (!imageFile) return;
+        const fileID = await onUploadBulkyImage(imageFile);
+
+        if(!fileID) return
+        onSendBulkyItem(`${bulkyTitle}\n\n${bulkyMessage}`, fileID, () => {
+          refScrollRoot.current?.scrollTo({
+            top: 0,
+          });
         });
-      });
+      } else if (type == "update") {
+        console.log("in update")
+
+        // Update post
+        console.log(fileID)
+        if (!postID || !fileID) return;
+        onUpdateBulkyItem(
+          postID,
+          `${bulkyTitle}\n\n${bulkyMessage}`,
+          () => {
+            refScrollRoot.current?.scrollTo({
+              top: 0,
+            });
+          },
+        );
+      }
+
       let body: Parameters<typeof bulkyItemPut>[0] = {
         chain_uid: chain!.uid,
         user_uid: bulky?.user_uid || authUser!.uid,
