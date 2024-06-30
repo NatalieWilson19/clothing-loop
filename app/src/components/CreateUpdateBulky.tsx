@@ -60,9 +60,7 @@ export default function CreateUpdateBulky({
   didDismiss?: (
     e: IonModalCustomEvent<OverlayEventDetail<BulkyItem | null>>,
   ) => void;
-  onUploadBulkyImage :(
-    image: File
-  ) => Promise<string| undefined>;
+  onUploadBulkyImage: (image: File) => Promise<string | undefined>;
   onSendBulkyItem: (
     message: string,
     fileID: string,
@@ -93,7 +91,9 @@ export default function CreateUpdateBulky({
 
   function modalInit() {
     console.log(bulkyTitle, bulkyMessage);
-    const url = fileID ? `http://localhost:8065/api/v4/files/${fileID}/preview` : ""
+    const url = fileID
+      ? `http://localhost:8065/api/v4/files/${fileID}/preview`
+      : "";
 
     setBulkyTitle(title || "");
     setBulkyMessage(message || "");
@@ -123,31 +123,26 @@ export default function CreateUpdateBulky({
     }
     try {
       if (type == "create") {
-
         if (!imageFile) return;
         const fileID = await onUploadBulkyImage(imageFile);
 
-        if(!fileID) return
+        if (!fileID) return;
         onSendBulkyItem(`${bulkyTitle}\n\n${bulkyMessage}`, fileID, () => {
           refScrollRoot.current?.scrollTo({
             top: 0,
           });
         });
       } else if (type == "update") {
-        console.log("in update")
+        console.log("in update");
 
         // Update post
-        console.log(fileID)
+        console.log(fileID);
         if (!postID || !fileID) return;
-        onUpdateBulkyItem(
-          postID,
-          `${bulkyTitle}\n\n${bulkyMessage}`,
-          () => {
-            refScrollRoot.current?.scrollTo({
-              top: 0,
-            });
-          },
-        );
+        onUpdateBulkyItem(postID, `${bulkyTitle}\n\n${bulkyMessage}`, () => {
+          refScrollRoot.current?.scrollTo({
+            top: 0,
+          });
+        });
       }
 
       let body: Parameters<typeof bulkyItemPut>[0] = {
@@ -339,41 +334,42 @@ export default function CreateUpdateBulky({
                   </div>
                 )}
               </div>
-
-              <IonButton
-                onClick={handleClickUpload}
-                size="default"
-                className="tw-m-0 tw-mb-4"
-                expand="block"
-                color={
-                  loadingUpload === State.idle
-                    ? "primary"
-                    : loadingUpload === State.loading
-                    ? "light"
-                    : loadingUpload === State.success
-                    ? "success"
-                    : "warning"
-                }
-              >
-                <IonIcon
-                  icon={
-                    loadingUpload === State.loading
-                      ? hourglassOutline
-                      : loadingUpload === State.success
-                      ? checkmarkOutline
-                      : cloudUploadOutline
-                  }
-                  className="tw-mr-2"
+              {type == "create" ? (
+                <IonButton
+                  onClick={handleClickUpload}
                   size="default"
-                />
-                {loadingUpload === State.loading
-                  ? t("loading")
-                  : loadingUpload === State.error
-                  ? "Error"
-                  : loadingUpload === State.success
-                  ? t("uploaded")
-                  : t("upload")}
-              </IonButton>
+                  className="tw-m-0 tw-mb-4"
+                  expand="block"
+                  color={
+                    loadingUpload === State.idle
+                      ? "primary"
+                      : loadingUpload === State.loading
+                      ? "light"
+                      : loadingUpload === State.success
+                      ? "success"
+                      : "warning"
+                  }
+                >
+                  <IonIcon
+                    icon={
+                      loadingUpload === State.loading
+                        ? hourglassOutline
+                        : loadingUpload === State.success
+                        ? checkmarkOutline
+                        : cloudUploadOutline
+                    }
+                    className="tw-mr-2"
+                    size="default"
+                  />
+                  {loadingUpload === State.loading
+                    ? t("loading")
+                    : loadingUpload === State.error
+                    ? "Error"
+                    : loadingUpload === State.success
+                    ? t("uploaded")
+                    : t("upload")}
+                </IonButton>
+              ) : null}
               {isCapacitor ? null : (
                 <input
                   type="file"
